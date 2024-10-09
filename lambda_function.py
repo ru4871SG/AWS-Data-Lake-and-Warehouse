@@ -63,14 +63,15 @@ def lambda_handler(event, context):
             df['rank'] = pd.to_numeric(df['rank'], errors='coerce').astype('Int64')
             df['product_num_ratings'] = pd.to_numeric(df['product_num_ratings'], errors='coerce').astype('Int64')
             df['product_star_rating'] = pd.to_numeric(df['product_star_rating'], errors='coerce')
-            df['product_price'] = pd.to_numeric(df['product_price'], errors='coerce')
+            # We use string for product_price to preserve the currency symbol
+            df['product_price'] = df['product_price'].astype(str)
 
             # Define schema with the correct data types
             schema = pa.schema([
                 ('rank', pa.int64()),
                 ('asin', pa.string()),
                 ('product_title', pa.string()),
-                ('product_price', pa.float64()),
+                ('product_price', pa.string()),
                 ('product_star_rating', pa.float64()),
                 ('product_num_ratings', pa.int64()),
                 ('product_url', pa.string()),
