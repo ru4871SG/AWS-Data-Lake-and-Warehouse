@@ -1,0 +1,78 @@
+{
+  "Comment": "AWS Step Functions state machine for amazonbestsellers",
+  "StartAt": "Initialize Wait Count",
+  "States": {
+    "Initialize Wait Count": {
+      "Type": "Pass",
+      "Result": {
+        "waitCount": 0
+      },
+      "ResultPath": "$",
+      "Next": "Invoke Lambda Function"
+    },
+    "Invoke Lambda Function": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "amazonrapidapifull",
+        "Payload": {}
+      },
+      "ResultPath": "$.lambdaResult",
+      "Next": "Check Lambda Result",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Wait State"
+        }
+      ]
+    },
+    "Check Lambda Result": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.lambdaResult.Payload.statusCode",
+          "NumericEquals": 200,
+          "Next": "Start Glue Job"
+        }
+      ],
+      "Default": "Wait State"
+    },
+    "Wait State": {
+      "Type": "Wait",
+      "Seconds": 300,
+      "Next": "Increment Wait Count"
+    },
+    "Increment Wait Count": {
+      "Type": "Pass",
+      "ResultPath": "$",
+      "Parameters": {
+        "waitCount.$": "States.MathAdd($.waitCount, 1)",
+        "lambdaResult.$": "$.lambdaResult"
+      },
+      "Next": "Check Wait Count"
+    },
+    "Check Wait Count": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.waitCount",
+          "NumericLessThan": 3,
+          "Next": "Invoke Lambda Function"
+        }
+      ],
+      "Default": "End Operation"
+    },
+    "Start Glue Job": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "glue-job-file-organizer"
+      },
+      "End": true
+    },
+    "End Operation": {
+      "Type": "Succeed",
+      "Comment": "Workflow has ended after maximum retries."
+    }
+  }
+}
