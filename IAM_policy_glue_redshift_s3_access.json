@@ -1,0 +1,37 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"redshift:GetClusterCredentials",
+				"redshift-serverless:GetWorkgroup",
+				"redshift-serverless:GetCredentials"
+			],
+			"Resource": [
+				"arn:aws:redshift-serverless:us-east-1:880013172391:workgroup/amazonbestsellers-workgroup"
+			]
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"redshift:DescribeClusters",
+				"redshift:GetClusterCredentials"
+			],
+			"Resource": "*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"s3:ListBucket",
+				"s3:GetObject",
+				"s3:PutObject",
+				"s3:DeleteObject"
+			],
+			"Resource": [
+				"arn:aws:s3:::amazonbestsellers",
+				"arn:aws:s3:::amazonbestsellers/*"
+			]
+		}
+	]
+}
