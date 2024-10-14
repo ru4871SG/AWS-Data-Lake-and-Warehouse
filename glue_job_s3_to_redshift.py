@@ -4,19 +4,22 @@ AWS Glue Spark ETL script from S3 to Redshift
 
 # Libraries
 import sys
+
+from awsglue.context import GlueContext
+from awsglue.dynamicframe import DynamicFrame
+from awsglue.job import Job
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
 
 from pyspark.context import SparkContext
-from awsglue.context import GlueContext
-from awsglue.job import Job
-
 from pyspark.sql.functions import (
     input_file_name, regexp_extract, when, regexp_replace,
-    substring_index, lit, to_timestamp
+    substring_index, lit
 )
-from awsglue.dynamicframe import DynamicFrame
-from pyspark.sql.types import LongType, StringType, DecimalType, DoubleType, TimestampType
+from pyspark.sql.types import LongType, StringType, DecimalType, DoubleType, TimestampType, IntegerType
+from pyspark.sql.utils import AnalysisException
+
+from datetime import datetime, timedelta
 
 # Initialize Glue context and job
 args = getResolvedOptions(sys.argv, ['JOB_NAME', 'TempDir'])
@@ -32,13 +35,24 @@ redshift_connection = "redshift-connection"
 redshift_table = "amazonbestsellers_redshift"
 
 # Temporary directory before writing to Redshift
-temp_dir = "s3://amazonbestsellers/temp"
+temp_dir = args['TempDir']
+
+# Check the current date in GMT-5 timezone, so we will only process the data for today
+current_time_check = (datetime.now() - timedelta(hours=5)).strftime('%Y%m%d')
 
 # Define the input path and read the Parquet files
 input_path = f"s3://{s3_bucket_name}/"
-df = spark.read.parquet(input_path + "*/*/*.parquet")
+parquet_path_pattern = input_path + f"*/amazonbestsellers_*_{current_time_check}/*.parquet"
 
-print(f"Total rows read from Parquet files: {df.count()}")
+try:
+    df = spark.read.parquet(parquet_path_pattern)
+    total_rows = df.count()
+    print(f"Total rows read from Parquet files for date {current_time_check}: {total_rows}")
+except AnalysisException as e:
+    # If no matching files are found, print the message and exit
+    print("There is no folder inside your S3 bucket that match today's date")
+    job.commit()
+    sys.exit(0)
 
 # Extract category from the file path in S3
 df = df.withColumn("full_path", input_file_name())
@@ -57,11 +71,11 @@ df = df.withColumn(
     .otherwise(lit("Unknown"))
 )
 
+# Clean 'product_price' column
 df = df.withColumn(
     "product_price",
     regexp_replace(regexp_replace(df.product_price, r"[^\d.]", ""), r"\.(?=.*\.)", "")
 )
-df = df.withColumn("product_price", df.product_price.cast(DecimalType(10,2)))
 
 # Create 'short_product_title' column
 df = df.withColumn(
@@ -93,37 +107,19 @@ final_df = df.select(
 )
 
 # Cast columns to match Redshift table schema
-final_df = final_df.withColumn("product_num_ratings", final_df["product_num_ratings"].cast(LongType()))
-final_df = final_df.withColumn("rank", final_df["rank"].cast(LongType()))
-final_df = final_df.withColumn("product_star_rating", final_df["product_star_rating"].cast(DoubleType()))
-final_df = final_df.withColumn("category", final_df["category"].cast(StringType()))
-final_df = final_df.withColumn("product_photo", final_df["product_photo"].cast(StringType()))
-final_df = final_df.withColumn("product_url", final_df["product_url"].cast(StringType()))
-final_df = final_df.withColumn("currency", final_df["currency"].cast(StringType()))
-final_df = final_df.withColumn("short_product_title", final_df["short_product_title"].cast(StringType()))
-final_df = final_df.withColumn("product_title", final_df["product_title"].cast(StringType()))
-final_df = final_df.withColumn("asin", final_df["asin"].cast(StringType()))
-final_df = final_df.withColumn("fetch_timestamp", final_df["fetch_timestamp"].cast(TimestampType()))
-final_df = final_df.withColumn("product_price", final_df["product_price"].cast(DecimalType(10,2)))
-
-# Handle null values in non-nullable columns
-non_nullable_columns = ["product_num_ratings", "rank", "product_star_rating", "category", "currency", "product_title", "asin", "product_price"]
-final_df = final_df.na.drop(subset=non_nullable_columns)
-
-# Making sure the columns in the final DataFrame are properly ordered to match Redshift table
-final_df = final_df.select(
-    "product_num_ratings",
-    "rank",
-    "product_star_rating",
-    "category",
-    "product_photo",
-    "product_url",
-    "currency",
-    "short_product_title",
-    "product_title",
-    "asin",
-    "fetch_timestamp",
-    "product_price"
+final_df = (
+    final_df.withColumn("product_num_ratings", final_df["product_num_ratings"].cast(IntegerType()))
+             .withColumn("rank", final_df["rank"].cast(IntegerType()))
+             .withColumn("product_star_rating", final_df["product_star_rating"].cast(DoubleType()))
+             .withColumn("category", final_df["category"].cast(StringType()))
+             .withColumn("product_photo", final_df["product_photo"].cast(StringType()))
+             .withColumn("product_url", final_df["product_url"].cast(StringType()))
+             .withColumn("currency", final_df["currency"].cast(StringType()))
+             .withColumn("short_product_title", final_df["short_product_title"].cast(StringType()))
+             .withColumn("product_title", final_df["product_title"].cast(StringType()))
+             .withColumn("asin", final_df["asin"].cast(StringType()))
+             .withColumn("fetch_timestamp", final_df["fetch_timestamp"].cast(TimestampType()))
+             .withColumn("product_price", final_df["product_price"].cast(DecimalType(10, 2)))
 )
 
 # Convert DataFrame to DynamicFrame

@@ -9,7 +9,7 @@ import boto3
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 import os
 
@@ -55,9 +55,9 @@ def lambda_handler(event, context):
         if amazon_data and 'data' in amazon_data and 'best_sellers' in amazon_data['data']:
             df = pd.DataFrame(amazon_data['data']['best_sellers'])
 
-            # Add fetch_timestamp column
-            current_date = datetime.now().date()
-            df['fetch_timestamp'] = current_date
+            # Add fetch_timestamp column (GMT - 5 timezone)
+            current_time = datetime.now() - timedelta(hours=5)
+            df['fetch_timestamp'] = current_time
 
             # Directly convert columns to the specified data types
             df['rank'] = pd.to_numeric(df['rank'], errors='coerce').astype('Int64')
@@ -77,7 +77,7 @@ def lambda_handler(event, context):
                 ('product_url', pa.string()),
                 ('product_photo', pa.string()),
                 ('rank_change_label', pa.string()),
-                ('fetch_timestamp', pa.date32())
+                ('fetch_timestamp', pa.timestamp('us'))
             ])
 
             # Convert DataFrame to PyArrow Table with the defined schema
@@ -93,7 +93,7 @@ def lambda_handler(event, context):
             buffer.seek(0)
 
             # Create a filename with timestamp and category in the S3 bucket
-            timestamp = datetime.now().strftime('%Y%m%d')
+            timestamp = (datetime.now() - timedelta(hours=5)).strftime('%Y%m%d')
             file_name = f"amazonbestsellers_{category}_{timestamp}.parquet"
 
             # Upload the data to S3

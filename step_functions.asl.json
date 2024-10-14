@@ -8,9 +8,9 @@
         "waitCount": 0
       },
       "ResultPath": "$",
-      "Next": "Invoke Lambda Function"
+      "Next": "Lambda Function amazonrapidapifull"
     },
-    "Invoke Lambda Function": {
+    "Lambda Function amazonrapidapifull": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
@@ -32,7 +32,7 @@
         {
           "Variable": "$.lambdaResult.Payload.statusCode",
           "NumericEquals": 200,
-          "Next": "Start Glue Job"
+          "Next": "Start Glue Job File Organizer"
         }
       ],
       "Default": "Wait State"
@@ -57,22 +57,49 @@
         {
           "Variable": "$.waitCount",
           "NumericLessThan": 3,
-          "Next": "Invoke Lambda Function"
+          "Next": "Lambda Function amazonrapidapifull"
         }
       ],
       "Default": "End Operation"
     },
-    "Start Glue Job": {
+    "Start Glue Job File Organizer": {
       "Type": "Task",
       "Resource": "arn:aws:states:::glue:startJobRun.sync",
       "Parameters": {
         "JobName": "glue-job-file-organizer"
       },
+      "Next": "Wait After First Glue Job"
+    },
+    "Wait After First Glue Job": {
+      "Type": "Wait",
+      "Seconds": 120,
+      "Next": "Lambda Function delete_temp_dir_data"
+    },
+    "Lambda Function delete_temp_dir_data": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "delete_temp_dir_data",
+        "Payload": {}
+      },
+      "Next": "Wait After Lambda delete_temp_dir_data"
+    },
+    "Wait After Lambda delete_temp_dir_data": {
+      "Type": "Wait",
+      "Seconds": 120,
+      "Next": "Start Glue Job S3 to Redshift"
+    },
+    "Start Glue Job S3 to Redshift": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "glue-job-s3-to-redshift"
+      },
       "End": true
     },
     "End Operation": {
       "Type": "Succeed",
-      "Comment": "Workflow has ended after maximum retries."
+      "Comment": "Workflow has ended after maximum retries or an error."
     }
   }
 }

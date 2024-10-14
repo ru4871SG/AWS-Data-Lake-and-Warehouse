@@ -30,7 +30,8 @@
 			],
 			"Resource": [
 				"arn:aws:s3:::amazonbestsellers",
-				"arn:aws:s3:::amazonbestsellers/*"
+				"arn:aws:s3:::amazonbestsellers/*",
+				"arn:aws:s3:::aws-glue-assets-880013172391-us-east-1*"
 			]
 		}
 	]
