@@ -1,6 +1,6 @@
 # AWS Data Lake and Warehouse
 
-This repository showcase my skill to build an efficient data pipeline using AWS services. The first Lambda function `lambda_amazonrapidapifull.py` extracts data from RapidAPI, and store it to S3 bucket (that we use as a data lake storage). Just by using this extracted data in S3, we can already query it directly with Amazon Athena. 
+This repository showcase my skill to build an efficient data pipeline using AWS services. The first Lambda function `lambda_fetch_rapidapi_to_s3.py` extracts data from RapidAPI, and store it to S3 bucket (that we use as a data lake storage). Just by using this extracted data in S3, we can already query it directly with Amazon Athena. 
 
 Then, the first AWS Glue ETL job script `glue_job_file_organizer.py` will organize the Parquet files in S3 bucket into their own category subfolders. The second AWS Glue ETL job script `glue_job_s3_to_redshift.py` will then perform proper ETL steps to load the data from S3 bucket to Amazon Redshift.
 

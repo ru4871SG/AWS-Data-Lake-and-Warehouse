@@ -8,20 +8,22 @@
         "waitCount": 0
       },
       "ResultPath": "$",
-      "Next": "Lambda Function amazonrapidapifull"
+      "Next": "Lambda Function fetch_rapidapi_to_s3"
     },
-    "Lambda Function amazonrapidapifull": {
+    "Lambda Function fetch_rapidapi_to_s3": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "amazonrapidapifull",
+        "FunctionName": "fetch_rapidapi_to_s3",
         "Payload": {}
       },
       "ResultPath": "$.lambdaResult",
       "Next": "Check Lambda Result",
       "Catch": [
         {
-          "ErrorEquals": ["States.ALL"],
+          "ErrorEquals": [
+            "States.ALL"
+          ],
           "Next": "Wait State"
         }
       ]
@@ -57,7 +59,7 @@
         {
           "Variable": "$.waitCount",
           "NumericLessThan": 3,
-          "Next": "Lambda Function amazonrapidapifull"
+          "Next": "Lambda Function fetch_rapidapi_to_s3"
         }
       ],
       "Default": "End Operation"
