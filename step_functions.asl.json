@@ -46,11 +46,10 @@
     },
     "Increment Wait Count": {
       "Type": "Pass",
-      "ResultPath": "$",
       "Parameters": {
-        "waitCount.$": "States.MathAdd($.waitCount, 1)",
-        "lambdaResult.$": "$.lambdaResult"
+        "waitCount.$": "States.MathAdd($.waitCount, 1)"
       },
+      "ResultPath": "$",
       "Next": "Check Wait Count"
     },
     "Check Wait Count": {

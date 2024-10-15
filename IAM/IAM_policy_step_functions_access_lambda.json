@@ -1,0 +1,25 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": [
+                "arn:aws:lambda:us-east-1:880013172391:function:fetch_rapidapi_to_s3:*",
+                "arn:aws:lambda:us-east-1:880013172391:function:delete_temp_dir_data:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": [
+                "arn:aws:lambda:us-east-1:880013172391:function:fetch_rapidapi_to_s3",
+                "arn:aws:lambda:us-east-1:880013172391:function:delete_temp_dir_data"
+            ]
+        }
+    ]
+}
