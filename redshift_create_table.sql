@@ -1,7 +1,7 @@
 -- This table should be created in Redshift before executing AWS Glue ETL job to transfer data from S3 to Redshift
 
 CREATE TABLE amazonbestsellers_redshift (
-    unique_id BIGINT IDENTITY(1,1),
+    unique_id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     product_num_ratings INT,
     rank INT,
     product_star_rating DOUBLE PRECISION,
