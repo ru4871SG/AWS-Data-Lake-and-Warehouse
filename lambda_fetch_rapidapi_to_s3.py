@@ -1,5 +1,5 @@
 """
-AWS Lambda function to fetch Amazon Best Sellers data from RapidAPI and upload it to an S3 bucket in Parquet format.
+AWS Lambda function to fetch Amazon Best Sellers data from RapidAPI and upload it to an S3 bucket in Parquet format (with partitioned structure)
 """
 
 # Libraries
@@ -92,19 +92,24 @@ def lambda_handler(event, context):
             # Reset buffer position
             buffer.seek(0)
 
-            # Create a filename with timestamp and category in the S3 bucket
-            timestamp = (datetime.now() - timedelta(hours=5)).strftime('%Y%m%d')
-            file_name = f"amazonbestsellers_{category}_{timestamp}.parquet"
+            # Create a filename with partitioned S3 structure by category, year, month, and day
+            timestamp = (datetime.now() - timedelta(hours=5))
+            year = timestamp.strftime('%Y')
+            month = timestamp.strftime('%m')
+            day = timestamp.strftime('%d')
 
-            # Upload the data to S3
+            # Define the partitioned S3 key
+            file_path = f"category={category}/year={year}/month={month}/day={day}/amazonbestsellers_{category}_{timestamp.strftime('%Y%m%d')}.parquet"
+
+            # Upload the data to S3 with the partitioned structure
             s3.put_object(
                 Bucket=bucket_name,
-                Key=file_name,
+                Key=file_path,
                 Body=buffer.getvalue(),
                 ContentType='application/octet-stream'
             )
 
-            return f"Data successfully uploaded to {bucket_name}/{file_name}"
+            return f"Data successfully uploaded to {bucket_name}/{file_path}"
         else:
             return f"Failed to retrieve data for category {category} or data structure is unexpected"
 

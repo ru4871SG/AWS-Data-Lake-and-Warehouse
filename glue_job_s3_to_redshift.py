@@ -13,11 +13,9 @@ from awsglue.utils import getResolvedOptions
 
 from pyspark.context import SparkContext
 from pyspark.sql.functions import (
-    input_file_name, regexp_extract, when, regexp_replace,
-    substring_index, lit
+    when, regexp_replace, substring_index, lit
 )
-from pyspark.sql.types import LongType, StringType, DecimalType, DoubleType, TimestampType, IntegerType
-from pyspark.sql.utils import AnalysisException
+from pyspark.sql.types import StringType, DecimalType, DoubleType, TimestampType, IntegerType
 
 from datetime import datetime, timedelta
 
@@ -38,25 +36,35 @@ redshift_table = "amazonbestsellers_redshift"
 temp_dir = args['TempDir']
 
 # Check the current date in GMT-5 timezone, so we will only process the data for today
-current_time_check = (datetime.now() - timedelta(hours=5)).strftime('%Y%m%d')
+current_date = datetime.now() - timedelta(hours=5)
+current_year = current_date.strftime('%Y')
+current_month = current_date.strftime('%m')
+current_day = current_date.strftime('%d')
+current_date_str = current_date.strftime('%Y%m%d')
 
-# Define the input path and read the Parquet files
+# Define the input path and read the partitioned Parquet files
 input_path = f"s3://{s3_bucket_name}/"
-parquet_path_pattern = input_path + f"*/amazonbestsellers_*_{current_time_check}/*.parquet"
+parquet_path_pattern = (
+    input_path +
+    f"category=*/year={current_year}/month={current_month}/day={current_day}/amazonbestsellers_*.parquet"
+)
 
 try:
     df = spark.read.parquet(parquet_path_pattern)
     total_rows = df.count()
-    print(f"Total rows read from Parquet files for date {current_time_check}: {total_rows}")
-except AnalysisException as e:
-    # If no matching files are found, print the message and exit
-    print("There is no folder inside your S3 bucket that match today's date")
+    print(f"Total rows read from Parquet files for date {current_date_str}: {total_rows}")
+
+    if total_rows == 0:
+        print(f"No data found in S3 for date {current_date_str}.")
+        job.commit()
+        sys.exit(0)
+
+except Exception as e:
+    # Handle exceptions such as missing files or other read errors
+    print(f"No matching partitioned files found in S3 for date {current_date_str}. Exception: {str(e)}")
     job.commit()
     sys.exit(0)
 
-# Extract category from the file path in S3
-df = df.withColumn("full_path", input_file_name())
-df = df.withColumn("category", regexp_extract("full_path", r"amazonbestsellers/([^/]+)/", 1))
 
 # Delete rank_change_label column if it exists
 if 'rank_change_label' in df.columns:
@@ -122,20 +130,14 @@ final_df = (
              .withColumn("product_price", final_df["product_price"].cast(DecimalType(10, 2)))
 )
 
-# Convert DataFrame to DynamicFrame
+# Convert to Glue DynamicFrame and write to Redshift
 dynamic_frame = DynamicFrame.fromDF(final_df, glueContext, "dynamic_frame")
 
-# Write DynamicFrame to Redshift
 glueContext.write_dynamic_frame.from_jdbc_conf(
     frame=dynamic_frame,
     catalog_connection=redshift_connection,
-    connection_options={
-        "dbtable": redshift_table,
-        "database": "dev"
-    },
+    connection_options={"dbtable": redshift_table, "database": "dev"},
     redshift_tmp_dir=temp_dir
 )
-
-print("Data loading completed.")
 
 job.commit()

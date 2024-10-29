@@ -34,7 +34,7 @@
         {
           "Variable": "$.lambdaResult.Payload.statusCode",
           "NumericEquals": 200,
-          "Next": "Start Glue Job File Organizer"
+          "Next": "Start Glue Job S3 to Redshift"
         }
       ],
       "Default": "Wait State"
@@ -63,15 +63,15 @@
       ],
       "Default": "End Operation"
     },
-    "Start Glue Job File Organizer": {
+    "Start Glue Job S3 to Redshift": {
       "Type": "Task",
       "Resource": "arn:aws:states:::glue:startJobRun.sync",
       "Parameters": {
-        "JobName": "glue-job-file-organizer"
+        "JobName": "glue-job-s3-to-redshift"
       },
-      "Next": "Wait After First Glue Job"
+      "Next": "Wait After Glue Job"
     },
-    "Wait After First Glue Job": {
+    "Wait After Glue Job": {
       "Type": "Wait",
       "Seconds": 120,
       "Next": "Lambda Function delete_temp_dir_data"
@@ -87,20 +87,12 @@
     },
     "Wait After Lambda delete_temp_dir_data": {
       "Type": "Wait",
-      "Seconds": 120,
-      "Next": "Start Glue Job S3 to Redshift"
-    },
-    "Start Glue Job S3 to Redshift": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startJobRun.sync",
-      "Parameters": {
-        "JobName": "glue-job-s3-to-redshift"
-      },
+      "Seconds": 30,
       "End": true
     },
     "End Operation": {
       "Type": "Succeed",
-      "Comment": "Workflow has ended after maximum retries or an error."
+      "Comment": "Workflow has ended"
     }
   }
 }

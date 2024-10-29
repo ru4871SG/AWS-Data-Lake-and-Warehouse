@@ -1,5 +1,5 @@
 """
-AWS Glue Spark script to organize the Amazon Best Sellers Parquet files in an S3 bucket into subfolders based on their categories
+AWS Glue Spark script to organize the Amazon Best Sellers Parquet files in an S3 bucket into subfolders based on their categories (assuming you use the flat structure)
 """
 
 # Libraries
