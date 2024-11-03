@@ -1,6 +1,6 @@
 # AWS Data Lake and Warehouse
 
-This repository demonstrates my skills in building an efficient data pipeline using AWS services. The first Lambda function in the repository, [lambda_fetch_rapidapi_to_s3.py`](https://github.com/ru4871SG/AWS-Data-Lake-and-Warehouse/blob/main/lambda_fetch_rapidapi_to_s3.py), extracts data from RapidAPI, and store it to S3 bucket (which we use as a data lake storage). The data stored in the S3 bucket will use a partitioned structure, so we can query it efficiently with Amazon Athena.
+This repository demonstrates my skills in building an efficient data pipeline using AWS services. The first Lambda function in the repository, [lambda_fetch_rapidapi_to_s3.py](https://github.com/ru4871SG/AWS-Data-Lake-and-Warehouse/blob/main/lambda_fetch_rapidapi_to_s3.py), extracts data from RapidAPI, and store it to S3 bucket (which we use as a data lake storage). The data stored in the S3 bucket will use a partitioned structure, so we can query it efficiently with Amazon Athena.
 
 Then, the Glue ETL job script [glue_job_s3_to_redshift.py](https://github.com/ru4871SG/AWS-Data-Lake-and-Warehouse/blob/main/glue_job_s3_to_redshift.py) will execute an ETL job to load the data from S3 bucket to Amazon Redshift.
 
